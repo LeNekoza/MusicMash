@@ -2,14 +2,8 @@
 
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useState, useEffect } from "react";
-
-interface Track {
-  id: string;
-  name: string;
-  artists: { name: string }[];
-  album: { name: string; images: { url: string }[] };
-  external_urls: { spotify: string };
-}
+import WorkflowEditor from "./components/WorkflowEditor";
+import { Track } from "./types";
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -44,78 +38,94 @@ export default function Home() {
   }, [session]);
 
   if (status === "loading") {
-    return <div className="p-8">Loading...</div>;
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!session) {
     return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold mb-4">MusicMash</h1>
-        <p className="mb-4">Sign in with Spotify to see your top tracks</p>
-        <button
-          onClick={() => signIn("spotify")}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-        >
-          Sign in with Spotify
-        </button>
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-green-400 to-blue-500">
+        <div className="bg-white p-8 rounded-xl shadow-2xl text-center max-w-md">
+          <div className="text-6xl mb-4">🎵</div>
+          <h1 className="text-3xl font-bold mb-4 text-gray-800">MusicMash</h1>
+          <p className="text-gray-600 mb-6">
+            Create visual playlists by connecting your favorite Spotify tracks
+          </p>
+          <button
+            onClick={() => signIn("spotify")}
+            className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors font-semibold"
+          >
+            Sign in with Spotify
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+          <p className="text-lg">Loading your top tracks...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg max-w-md text-center">
+          <h2 className="font-bold mb-2">Error</h2>
+          <p>{error}</p>
+          <button
+            onClick={fetchTopTracks}
+            className="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Your Top Tracks</h1>
-        <button
-          onClick={() => signOut()}
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-        >
-          Sign Out
-        </button>
+    <div className="h-screen flex flex-col overflow-hidden">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center flex-shrink-0 dark:bg-neutral-900 dark:border-neutral-700">
+        <div className="flex items-center space-x-3">
+          <span className="text-2xl">🎵</span>
+          <h1 className="text-xl font-bold text-gray-800 dark:text-white">
+            MusicMash
+          </h1>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            Visual Music Workflow
+          </span>
+        </div>
+        <div className="flex items-center space-x-4">
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            Welcome, {session.user?.name}
+          </span>
+          <button
+            onClick={() => signOut()}
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 min-h-0">
+        <WorkflowEditor tracks={tracks} />
       </div>
-
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-
-      {loading ? (
-        <div>Loading your top tracks...</div>
-      ) : (
-        <div className="grid gap-4">
-          {tracks.map((track, index) => (
-            <div
-              key={track.id}
-              className="flex items-center space-x-4 p-4 border rounded"
-            >
-              <span className="text-lg font-bold w-8">{index + 1}</span>
-              {track.album.images[0] && (
-                <img
-                  src={track.album.images[0].url}
-                  alt={track.album.name}
-                  className="w-16 h-16 rounded"
-                />
-              )}
-              <div className="flex-1">
-                <h3 className="font-semibold">{track.name}</h3>
-                <p className="text-gray-600">
-                  {track.artists.map((artist) => artist.name).join(", ")}
-                </p>
-                <p className="text-sm text-gray-500">{track.album.name}</p>
-              </div>
-              <a
-                href={track.external_urls.spotify}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600"
-              >
-                Open in Spotify
-              </a>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
